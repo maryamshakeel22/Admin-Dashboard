@@ -17,15 +17,13 @@ interface Order {
   province: string;
   city: string;
   zip: string;
-  country:string;
+  country: string;
   total: number;
-  discount: number;
   orderDate: string;
   status: string | null;
   cart: {
-    imageUrl: any;
+    imageUrl: string;
     title: string;
-    image: string;
   }[];
 }
 
@@ -34,7 +32,6 @@ export default function AdminDashboard() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [filter, setFilter] = useState("All");
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState("All");
 
   useEffect(() => {
     client
@@ -56,7 +53,6 @@ export default function AdminDashboard() {
           cart[]->{
             _id,
             title,
-            price,
             "imageUrl": productImage.asset->url,
           }
         }`
@@ -75,7 +71,7 @@ export default function AdminDashboard() {
   const handleDelete = async (orderId: string) => {
     const result = await Swal.fire({
       title: "Are you sure?",
-      text: "You won't be able to revert this!",
+      text: "This action cannot be undone!",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -88,7 +84,7 @@ export default function AdminDashboard() {
     try {
       await client.delete(orderId);
       setOrders((prevOrders) => prevOrders.filter((order) => order._id !== orderId));
-      Swal.fire("Deleted!", "Your order has been deleted.", "success");
+      Swal.fire("Deleted!", "The order has been removed.", "success");
     } catch (error) {
       console.error("Error deleting order:", error);
       Swal.fire("Error!", "Something went wrong while deleting.", "error");
@@ -97,10 +93,7 @@ export default function AdminDashboard() {
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      await client
-        .patch(orderId)
-        .set({ status: newStatus })
-        .commit();
+      await client.patch(orderId).set({ status: newStatus }).commit();
 
       setOrders((prevOrders) =>
         prevOrders.map((order) =>
@@ -108,84 +101,74 @@ export default function AdminDashboard() {
         )
       );
 
-      if (newStatus === "dispatch") {
-        Swal.fire("Dispatch", "The order is now dispatched.", "success");
-      } else if (newStatus === "success") {
-        Swal.fire("Success", "The order has been completed.", "success");
-      }
+      Swal.fire(`"Updated!", Order marked as ${newStatus}., "success"`);
     } catch (error) {
       console.error("Error updating order status:", error);
-      Swal.fire("Error!", "Something went wrong while updating the status.", "error");
+      Swal.fire("Error!", "Could not update order status.", "error");
     }
   };
 
   return (
     <ProtectedRoute>
-      <div className="flex h-screen bg-gray-100">
+      <div className="flex h-screen bg-white text-black">
         {/* Side Navbar */}
-        <div className="w-64 bg-red-600 text-white shadow-lg flex flex-col p-4">
-          <h2 className="text-3xl font-bold mb-6">Admin Dashboard</h2>
+        <div className="w-64 bg-gray-900 p-6 shadow-lg">
+          <h2 className="text-3xl font-bold mb-6 text-white">Admin Dashboard</h2>
           <div className="space-y-4">
             {["All", "pending", "dispatch", "success"].map((status) => (
               <button
                 key={status}
                 className={`block w-full text-left py-2 px-4 rounded-lg transition-all ${
-                  filter === status ? "bg-white text-red-600 font-bold" : "text-white"
+                  filter === status ? "bg-white text-black font-bold" : "text-white hover:bg-gray-700"
                 }`}
                 onClick={() => setFilter(status)}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
             ))}
-                    {/* ✅ New Products Button for Navigation */}
-                    <button
-          className={`block w-full text-left py-2 px-4 rounded-lg transition-all ${
-            activeTab === "products" ? "bg-white text-red-600 font-bold" : "text-white"
-          }`}
-          onClick={() => {
-            setActiveTab("products"); // ✅ Set active state
-            router.push("/admin/products"); // ✅ Navigate to /admin/product
-          }}
-        >
-          Products
-        </button>
-
+            {/* Navigate to Products Page */}
+            <button
+              className="block w-full text-left py-2 px-4 rounded-lg transition-all text-white hover:bg-gray-700"
+              onClick={() => router.push("/admin/products")}
+            >
+              Products
+            </button>
           </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 p-8 overflow-y-auto">
-          <h2 className="text-3xl font-semibold mb-6 text-center text-red-600">Orders</h2>
-          <div className="overflow-x-auto bg-white shadow-md rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200 text-sm lg:text-base">
-              <thead className="bg-gray-50 text-red-600">
+          <h2 className="text-3xl font-semibold mb-6 text-center">Orders</h2>
+          <div className="overflow-x-auto bg-gray-900 text-white shadow-md rounded-lg">
+            <table className="min-w-full divide-y divide-gray-700 text-sm lg:text-base">
+              <thead className="bg-gray-800">
                 <tr>
-                  <th>ID</th>
-                  <th>Customer</th>
-                  <th>Address</th>
-                  <th>Date</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Action</th>
+                  <th className="px-4 py-2">ID</th>
+                  <th className="px-4 py-2">Customer</th>
+                  <th className="px-4 py-2">Address</th>
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Total</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-700">
                 {filteredOrders.map((order) => (
                   <React.Fragment key={order._id}>
                     <tr
-                      className="cursor-pointer hover:bg-red-100 transition-all"
+                      className="cursor-pointer hover:bg-gray-800 transition-all"
                       onClick={() => toggleOrderDetails(order._id)}
                     >
                       <td className="px-4 py-2">{order._id}</td>
                       <td className="px-4 py-2">{order.firstName} {order.lastName}</td>
-                      <td className="px-4 py-2">{order.city} {order.province}</td>
+                      <td className="px-4 py-2">{order.city}, {order.province}</td>
                       <td className="px-4 py-2">{new Date(order.orderDate).toLocaleDateString()}</td>
                       <td className="px-4 py-2">${order.total}</td>
                       <td className="px-4 py-2">
                         <select
                           value={order.status || ""}
                           onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                          className="bg-gray-100 p-1 rounded-lg w-full"
+                          className="bg-gray-700 p-1 rounded-lg w-full text-white"
                         >
                           <option value="pending">Pending</option>
                           <option value="dispatch">Dispatch</option>
@@ -206,27 +189,16 @@ export default function AdminDashboard() {
                     </tr>
                     {selectedOrderId === order._id && (
                       <tr>
-                        <td colSpan={7} className="bg-gray-50 p-4">
-                          <h3 className="font-bold text-red-600">Order Details</h3>
+                        <td colSpan={7} className="bg-gray-800 p-4">
+                          <h3 className="font-bold">Order Details</h3>
                           <p><strong>Phone:</strong> {order.phone}</p>
                           <p><strong>Email:</strong> {order.email}</p>
-                          <p><strong>City:</strong> {order.street}, {order.city},{" "}
-                          {order.province}, {order.zip}, {order.country}</p>
+                          <p><strong>Address:</strong> {order.street}, {order.city}, {order.province}, {order.zip}, {order.country}</p>
                           <ul>
-                            {order.cart.map((product:any, index:number) => (
+                            {order.cart.map((product, index) => (
                               <li key={`${order._id}-${index}`} className="flex items-center gap-2">
                                 {product.title}
-                                {product?.imageUrl ? (
-                                  <Image
-                                    src={product.imageUrl}
-                                    alt={product.title || "No Image"}
-                                    className="w-16 h-16 object-cover mt-2"
-                                    width={50}
-                                    height={50}
-                                  />
-                                ) : (
-                                  <p className="text-red-500 text-sm">Image not available</p>
-                                )}
+                                <Image src={product.imageUrl} alt={product.title} width={50} height={50} className="w-16 h-16 object-cover" />
                               </li>
                             ))}
                           </ul>

@@ -5,6 +5,7 @@ import { client } from "@/sanity/lib/client";
 import { uploadImage, updateProduct, deleteProduct, addProduct } from "@/utils/sanity";
 import Image from "next/image";
 import Swal from "sweetalert2";
+import { useRouter } from "next/navigation";
 
 interface Product {
   _id: string;
@@ -18,17 +19,19 @@ export default function AdminProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newImage, setNewImage] = useState<File | null>(null);
-  const [newProduct, setNewProduct] = useState<{ title: string; description: string; price: string; image: File | null }>({ title: "", description: "", price: "", image: null });
+  const [newProduct, setNewProduct] = useState<{ title: string; description: string; price: string; image: File | null }>({
+    title: "",
+    description: "",
+    price: "",
+    image: null,
+  });
+  const router = useRouter();
 
-  // 📌 Fetch Products from Sanity
   useEffect(() => {
     client
       .fetch(
         `*[_type == "product"]{
-          _id,
-          title,
-          description,
-          price,
+          _id, title, description, price,
           "imageUrl": productImage.asset->url
         }`
       )
@@ -36,16 +39,15 @@ export default function AdminProducts() {
       .catch((error) => console.error("Error fetching products:", error));
   }, []);
 
-  // 📌 Handle Image Upload & Product Update
   const handleSave = async () => {
     if (!editingProduct) return;
-  
+
     let updatedData: any = {
       title: editingProduct.title,
-      description: editingProduct.description,  // ✅ Ensure description is updated
-      price: editingProduct.price,              // ✅ Ensure price is updated
+      description: editingProduct.description,
+      price: editingProduct.price,
     };
-  
+
     if (newImage) {
       try {
         const imageId = await uploadImage(newImage);
@@ -55,25 +57,22 @@ export default function AdminProducts() {
         return;
       }
     }
-  
+
     try {
       await updateProduct(editingProduct._id, updatedData);
       Swal.fire("Success!", "Product updated successfully.", "success");
-  
+
       setProducts((prev) =>
         prev.map((p) => (p._id === editingProduct._id ? { ...p, ...updatedData } : p))
       );
-  
+
       setEditingProduct(null);
       setNewImage(null);
     } catch (error) {
       Swal.fire("Error!", "Something went wrong.", "error");
     }
   };
-  
-  
 
-  // 📌 Handle Delete Product
   const handleDelete = async (productId: string) => {
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -94,7 +93,6 @@ export default function AdminProducts() {
     }
   };
 
-  // 📌 Handle Add Product
   const handleAddProduct = async () => {
     if (!newProduct.title || !newProduct.description || !newProduct.price || !newProduct.image) {
       Swal.fire("Error!", "All fields are required!", "error");
@@ -127,71 +125,108 @@ export default function AdminProducts() {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4 text-center">Manage Products</h2>
-
-      {/* 🔹 Add Product Form */}
-      <div className="border p-4 rounded-lg bg-white shadow mb-6">
-        <h3 className="text-lg font-bold mb-2">Add New Product</h3>
-        <input
-          type="text"
-          className="w-full p-2 border rounded-lg mb-2"
-          placeholder="Product Title"
-          value={newProduct.title}
-          onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
-        />
-        <textarea
-          className="w-full p-2 border rounded-lg mb-2"
-          placeholder="Product Description"
-          value={newProduct.description}
-          onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-        />
-        <input
-          type="number"
-          className="w-full p-2 border rounded-lg mb-2"
-          placeholder="Price"
-          value={newProduct.price}
-          onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-        />
-        <input
-          type="file"
-          className="mb-2"
-          onChange={(e) => setNewProduct({ ...newProduct, image: e.target.files ? e.target.files[0] : null })}
-        />
-        <button onClick={handleAddProduct} className="bg-green-500 text-white px-3 py-1 rounded-lg">
-          Add Product
-        </button>
+    <div className="flex h-screen bg-black text-white">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-900 p-6">
+        <h2 className="text-3xl font-bold mb-6 text-center">Admin Panel</h2>
+        <div className="space-y-4">
+          <button
+            className="w-full py-2 px-4 rounded-lg bg-gray-700 hover:bg-gray-600"
+            onClick={() => router.push("/admin/dashboard")}
+          >
+            Orders
+          </button>
+          <button
+            className="w-full py-2 px-4 rounded-lg bg-white text-black font-bold"
+            onClick={() => router.push("/admin/products")}
+          >
+            Products
+          </button>
+        </div>
       </div>
 
-      {/* 🔹 Existing Products */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {products.map((product) => (
-          <div key={product._id} className="border p-4 rounded-lg bg-white shadow">
-            <Image src={product.imageUrl} alt={product.title} width={200} height={200} className="mx-auto"/>
-            <h3 className="text-lg font-bold mt-2">{product.title}</h3>
-            <p className="text-gray-600">{product.description}</p>
-            <p className="text-red-600 font-bold">${product.price}</p>
-            <div className="mt-4 flex gap-2">
-              <button
-                onClick={() => setEditingProduct({...product})}
-                className="bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-700"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => handleDelete(product._id)}
-                className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Main Content */}
+      <div className="flex-1 p-8 overflow-y-auto">
+        <h2 className="text-3xl font-semibold mb-6 text-center">Manage Products</h2>
 
+        {/* Add Product Section */}
+        <div className="border p-4 rounded-lg bg-gray-800 shadow mb-6">
+          <h3 className="text-lg font-bold mb-2">Add New Product</h3>
+          <input
+            type="text"
+            className="w-full p-2 border rounded-lg mb-2 text-black"
+            placeholder="Product Title"
+            value={newProduct.title}
+            onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
+          />
+          <textarea
+            className="w-full p-2 border rounded-lg mb-2 text-black"
+            placeholder="Product Description"
+            value={newProduct.description}
+            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+          />
+          <input
+            type="number"
+            className="w-full p-2 border rounded-lg mb-2 text-black"
+            placeholder="Price"
+            value={newProduct.price}
+            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+          />
+          <input
+            type="file"
+            className="mb-2"
+            onChange={(e) => setNewProduct({ ...newProduct, image: e.target.files ? e.target.files[0] : null })}
+          />
+          <button onClick={handleAddProduct} className="bg-green-500 text-white px-3 py-1 rounded-lg">
+            Add Product
+          </button>
+        </div>
+
+        {/* Products Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full bg-gray-900 text-white border">
+            <thead className="bg-gray-700">
+              <tr>
+                <th>Image</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product) => (
+                <tr key={product._id} className="border-t">
+                  <td className="p-4 w-20 h-20">
+                  <Image
+                        src={product.imageUrl}
+                        width={60}
+                        height={60}
+                        alt={product.title}
+                        className="w-16 h-12 object-cover rounded-lg"
+                        loading='lazy'
+                      />
+                  </td>
+                  <td>{product.title}</td>
+                  <td>{product.description.slice(0, 20)}</td>
+                  <td>${product.price}</td>
+                  <td>
+                    <button onClick={() => setEditingProduct(product)} className="bg-blue-500 px-3 py-1 rounded-lg">
+                      Edit
+                    </button>
+                    <button onClick={() => handleDelete(product._id)} className="bg-red-500 px-3 py-1 rounded-lg ml-2">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
       {editingProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg w-96">
+          <div className="bg-white text-black p-6 rounded-lg w-96">
             <h3 className="text-lg font-bold mb-4">Edit Product</h3>
             <input
               type="text"
@@ -233,6 +268,6 @@ export default function AdminProducts() {
           </div>
         </div>
       )}
-    </div>
+  </div>
   );
 }
