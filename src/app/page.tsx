@@ -6,7 +6,7 @@ export default function AdminLandingPage() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col justify-center items-center h-screen bg-black text-white">
+    <div className="flex flex-col justify-center text-center items-center h-screen bg-black text-white">
       <h1 className="text-4xl font-bold mb-4">Welcome to the Admin Panel</h1>
       <p className="text-lg text-gray-400 mb-6">
         Manage orders, products, and users with ease.
